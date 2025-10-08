@@ -1,58 +1,85 @@
-import React from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
-import { useAppDispatch } from "../../../app/store";
-import { useForm, Controller } from "react-hook-form";
-import { setCredentials } from "../authSlice";
-import axios from "axios";
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { sendOtp, verifyOtp } from '../services/authService';
+import { useAuth } from '../../../app/context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
-export default function LoginScreen() {
-    const dispatch = useAppDispatch();
-    const { control, handleSubmit } = useForm();
-    const onSubmit = async (data: any) => {
+const LoginScreen = () => {
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const { setUserToken } = useAuth();
+    const navigation = useNavigation();
+
+    const handleSendOtp = async () => {
         try {
-            const res = await axios.post('https://localhost:7295/api/Auth/VerifyOtp', data);
-            dispatch(setCredentials({
-                accessToken: res.data.accessToken,
-                refreshToken: res.data.refreshToken,
-                user: res.data.user,
-            }));
+            await sendOtp(phone);
+            setOtpSent(true);
         } catch (error) {
-            console.error("Login Failed", error);
+            console.log('Send OTP error:', error);
         }
     };
+
+    const handleVerifyOtp = async () => {
+        try {
+            const response = await verifyOtp(phone, otp);
+            setUserToken(response.token);
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Dashboard' as never }],
+            });
+        } catch (error) {
+            console.log('Verify OTP error:', error);
+        }
+    };
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Login via OTP</Text>
-            <Controller control={control} name="phoneNumber" render={({ field: { onChange, value } }) => (
+            <Text style={styles.title}>OTP Login</Text>
+
+            <TextInput
+                placeholder="Enter phone number"
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+            />
+
+            {otpSent && (
                 <TextInput
+                    placeholder="Enter OTP"
                     style={styles.input}
-                    placeholder="Enter Phone Number"
-                    value={value}
-                    onChangeText={onChange}
+                    value={otp}
+                    onChangeText={setOtp}
                 />
-            )} />
-            <Button title="Send OTP" onPress={handleSubmit(onSubmit)} />
+            )}
+
+            {!otpSent ? (
+                <Button title="Send OTP" onPress={handleSendOtp} />
+            ) : (
+                <Button title="Verify OTP" onPress={handleVerifyOtp} />
+            )}
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: "center",
-        padding: 20,
+        justifyContent: 'center',
+        paddingHorizontal: 20,
     },
     title: {
         fontSize: 22,
+        fontWeight: 'bold',
         marginBottom: 20,
-        fontWeight: "600",
-        textAlign: "center",
+        textAlign: 'center',
     },
     input: {
         borderWidth: 1,
-        borderColor: "#ccc",
         padding: 10,
-        marginBottom: 12,
-        borderRadius: 8
+        marginBottom: 15,
+        borderRadius: 6,
     },
 });
+
+export default LoginScreen;
