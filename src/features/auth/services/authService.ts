@@ -1,24 +1,64 @@
 import axios from "axios";
 
-const API_BASE_URL = 'http://192.168.1.36:5210/api';
+const API_BASE = 'http://192.168.1.36:5210/api';
 // 👆 use your backend URL (10.0.2.2 works for Android emulator if backend runs on localhost:5000)
 
-export const sendOtp = async (phone: string) => {
-    const response = await axios.post(`${API_BASE_URL}/auth/send-otp`, { mobileNumber: phone });
-    return response.data;
+type VerifyResponse = {
+    isNewUser: boolean;
+    token?: string;
+    role?: string;
+    userId?: string;
 };
 
-export const verifyOtp = async (phone: string, otp: string) => {
-    const response = await axios.post(`${API_BASE_URL}/auth/verify-otp`, { mobileNumber: phone, otp });
-    return response.data;
+export const sendOtp = async (mobile: string) => {
+    const res = await fetch(`${API_BASE}/auth/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobileNumber: mobile })
+    });
+    if (!res.ok) throw new Error("Failed to send OTP");
+    return await res.json();
 };
 
-export const login = async (phone: string) => {
-    const response = await axios.post(`${API_BASE_URL}/auth/login`, { phone });
-    return response.data;
+export const verifyOtp = async (mobile: string, otpCode: string): Promise<VerifyResponse> => {
+    const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobileNumber: mobile, otpCode })
+    });
+    if (res.status === 401) {
+        const txt = await res.text();
+        throw new Error(txt || "Unauthorized");
+    }
+    if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Verify OTP failed");
+    }
+    return (await res.json()) as VerifyResponse;
 };
 
-export const logout = async () => {
-    // If needed — handle server-side logout
-    return true;
+export const signupCompany = async (mobile: string, otpCode: string) => {
+    const res = await fetch(`${API_BASE}/auth/signup/company`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobileNumber: mobile, otpCode })
+    });
+    if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Signup company failed");
+    }
+    return await res.json(); // expected: { token, role, userId }
+};
+
+export const signupEmployee = async (mobile: string, otpCode: string) => {
+    const res = await fetch(`${API_BASE}/auth/signup/employee`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobileNumber: mobile, otpCode })
+    });
+    if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Signup employee failed");
+    }
+    return await res.json(); // expected: { token, role, userId }
 };

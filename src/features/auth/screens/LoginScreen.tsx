@@ -5,61 +5,58 @@ import { useAuth } from '../../../app/context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
 const LoginScreen = () => {
-    const [phone, setPhone] = useState('');
+    const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);
-    const { setUserToken } = useAuth();
     const navigation = useNavigation();
+    const { setAuth } = useAuth();
 
-    const handleSendOtp = async () => {
+    const onSendOtp = async () => {
         try {
-            await sendOtp(phone);
+            await sendOtp(mobile);
             setOtpSent(true);
-            Alert.alert('Success', 'OTP sent to your phone.');
-        } catch (error) {
-            console.log('Send OTP error:', error);
+            Alert.alert('OTP Sent', 'Please check your phone.');
+        } catch (e: any) {
+            Alert.alert('Error', e.message || 'Failed to send OTP');
         }
     };
 
-    const handleVerifyOtp = async () => {
+    const onVerify = async () => {
         try {
-            const response = await verifyOtp(phone, otp);
-            setUserToken(response.token);
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Dashboard' as never }],
-            });
-        } catch (error) {
-            Alert.alert('Error', 'Invalid OTP. Please try again.');
-            console.log('Verify OTP error:', error);
+            const res = await verifyOtp(mobile, otp);
+            if (res.isNewUser) {
+                // navigate to signup with mobile and otp passed so user doesn't need to re-enter
+                navigation.navigate('Signup' as never, { mobile, otp } as never);
+                return;
+            }
+            // logged-in user
+            if (res.token && res.role) {
+                await setAuth(res.token, res.role);
+                // navigate to role-based dashboard
+                if (res.role.toLowerCase() === 'owner') {
+                    navigation.reset({ index: 0, routes: [{ name: 'OwnerDashboard' as never }] });
+                } else {
+                    navigation.reset({ index: 0, routes: [{ name: 'EmployeeDashboard' as never }] });
+                }
+            }
+        } catch (e: any) {
+            Alert.alert('Error', e.message || 'Verify failed');
         }
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>OTP Login</Text>
-
-            <TextInput
-                placeholder="Enter phone number"
-                style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-            />
-
+        <View style={{ padding: 16 }}>
+            <Text>Mobile Number</Text>
+            <TextInput value={mobile} onChangeText={setMobile} keyboardType="phone-pad" placeholder="Enter mobile" />
+            <Button title="Send OTP" onPress={onSendOtp} />
             {otpSent && (
-                <TextInput
-                    placeholder="Enter OTP"
-                    style={styles.input}
-                    value={otp}
-                    onChangeText={setOtp}
-                />
+                <>
+                    <Text>Enter OTP</Text>
+                    <TextInput value={otp} onChangeText={setOtp} keyboardType="numeric" />
+                    <Button title="Verify OTP" onPress={onVerify} />
+                </>
             )}
-
-            {!otpSent ? (
-                <Button title="Send OTP" onPress={handleSendOtp} />
-            ) : (
-                <Button title="Verify OTP" onPress={handleVerifyOtp} />
-            )}
+            <Button title="Signup instead" onPress={() => navigation.navigate('Signup' as never)} />
         </View>
     );
 };
