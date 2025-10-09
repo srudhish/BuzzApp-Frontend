@@ -13,11 +13,11 @@ const LoginScreen = () => {
 
     const onSendOtp = async () => {
         try {
-            await sendOtp(mobile);
+            await sendOtp(mobile, false); // false => login mode
             setOtpSent(true);
             Alert.alert('OTP Sent', 'Please check your phone.');
         } catch (e: any) {
-            Alert.alert('Error', e.message || 'Failed to send OTP');
+            Alert.alert('Login Failed', e.message || 'The user is not registered, please signup.');
         }
     };
 

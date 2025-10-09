@@ -10,13 +10,18 @@ type VerifyResponse = {
     userId?: string;
 };
 
-export const sendOtp = async (mobile: string) => {
+export const sendOtp = async (mobile: string, isSignup = false) => {
     const res = await fetch(`${API_BASE}/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobileNumber: mobile })
+        body: JSON.stringify({ mobileNumber: mobile, isSignup }),
     });
-    if (!res.ok) throw new Error("Failed to send OTP");
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to send OTP");
+    }
+
     return await res.json();
 };
 
