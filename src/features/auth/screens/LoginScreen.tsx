@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { sendOtp, verifyOtp } from '../services/authService';
 import { useAuth } from '../../../app/context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +15,7 @@ const LoginScreen = () => {
         try {
             await sendOtp(phone);
             setOtpSent(true);
+            Alert.alert('Success', 'OTP sent to your phone.');
         } catch (error) {
             console.log('Send OTP error:', error);
         }
@@ -29,6 +30,7 @@ const LoginScreen = () => {
                 routes: [{ name: 'Dashboard' as never }],
             });
         } catch (error) {
+            Alert.alert('Error', 'Invalid OTP. Please try again.');
             console.log('Verify OTP error:', error);
         }
     };
