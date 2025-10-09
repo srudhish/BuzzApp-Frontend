@@ -1,4 +1,5 @@
 import axios from "axios";
+import { UserProfileUpdateDto } from "../types";
 
 const API_BASE = 'http://192.168.1.36:5210/api';
 // 👆 use your backend URL (10.0.2.2 works for Android emulator if backend runs on localhost:5000)
@@ -66,4 +67,45 @@ export const signupEmployee = async (mobile: string, otpCode: string) => {
         throw new Error(txt || "Signup employee failed");
     }
     return await res.json(); // expected: { token, role, userId }
+};
+
+/**
+ * Submit user profile to backend
+ * @param userId - ID of the logged-in user
+ * @param data - UserProfileUpdateDto
+ * @param token - JWT token from AuthContext
+ */
+export const submitProfile = async (
+    userId: string,
+    data: UserProfileUpdateDto,
+    token: string
+) => {
+    const res = await fetch(`${API_BASE}/User/${userId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to update profile");
+    }
+
+    return await res.json(); // expected: { message: "Profile updated successfully" }
+};
+
+export const getCurrentUser = async (token: string, userId: string) => {
+    const res = await fetch(`${API_BASE}/User/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Failed to fetch user");
+    }
+
+    return await res.json(); // return user object
 };
