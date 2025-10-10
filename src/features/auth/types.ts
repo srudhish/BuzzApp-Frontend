@@ -1,5 +1,5 @@
 // User role enum (matches backend)
-export type UserRole = 'Owner' | 'Supplier' | 'Buyer' | 'Employee' | 'Supervisor' | 'Labor';
+export enum UserRole { Owner = 1, Supplier = 2, Buyer = 3, Employee = 4, Supervisor = 5, Labor = 6 };
 
 // EmployeeProfile DTO
 export interface EmployeeProfileDto {

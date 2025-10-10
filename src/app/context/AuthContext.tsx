@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserRole } from '@features/auth/types';
 
 type AuthContextType = {
     userToken: string | null;
-    role: string | null;
+    role: UserRole | null;
     userId: string | null;
-    setAuth: (token: string, role: string, userId: string) => Promise<void>;
+    setAuth: (token: string, role: UserRole, userId: string) => Promise<void>;
     logout: () => Promise<void>;
     isAuthenticated: boolean;
 };
@@ -14,7 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [userToken, setUserToken] = useState<string | null>(null);
-    const [role, setRole] = useState<string | null>(null);
+    const [role, setRole] = useState<UserRole | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
 
     const isAuthenticated = !!userToken;
@@ -23,24 +24,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // load auth info from storage on mount
         (async () => {
             try {
-                const token = await AsyncStorage.getItem('@user_token');
-                const r = await AsyncStorage.getItem('@user_role');
-                const id = await AsyncStorage.getItem('@user_id');
-                if (token) setUserToken(token);
-                if (r) setRole(r);
-                if (id) setUserId(id);
+                await AsyncStorage.removeItem('@user_token');
+                await AsyncStorage.removeItem('@user_role');
+                await AsyncStorage.removeItem('@user_id');
+                setUserToken(null);
+                setRole(null);
+                setUserId(null);
             } catch (e) {
-                console.warn('Failed to load auth', e);
+                console.warn('Failed to clear auth on app start', e);
             }
         })();
     }, []);
 
-    const setAuth = async (token: string, roleVal: string, id: string) => {
+    const setAuth = async (token: string, roleVal: UserRole, id: string) => {
         setUserToken(token);
         setRole(roleVal);
         setUserId(id);
         await AsyncStorage.setItem('@user_token', token);
-        await AsyncStorage.setItem('@user_role', roleVal);
+        await AsyncStorage.setItem('@user_role', String(roleVal));
         await AsyncStorage.setItem('@user_id', id);
     };
 

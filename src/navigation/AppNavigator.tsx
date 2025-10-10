@@ -6,11 +6,13 @@ import ProfileScreen from "../features/auth/screens/ProfileScreen";
 import { useAuth } from "../app/context/AuthContext";
 import { ActivityIndicator, View } from "react-native";
 import { getCurrentUser } from "../features/auth/services/authService";
+import LoginScreen from "../features/auth/screens/LoginScreen";
+import SignupScreen from "../features/auth/screens/SignupScreen";
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
-    const { userToken, userId } = useAuth();
+    const { userToken, userId, isAuthenticated } = useAuth();
     const [loading, setLoading] = useState(true);
     const [isProfileComplete, setIsProfileComplete] = useState(false);
 
@@ -25,8 +27,8 @@ const AppNavigator = () => {
                 setLoading(true);
                 const user = await getCurrentUser(userToken, userId);
 
-                // Assuming `IsVerified` is true when profile is complete
-                setIsProfileComplete(!!user.isVerified);
+                // Assuming `isProfileCompleted` is true when profile is complete
+                setIsProfileComplete(user.isProfileCompleted);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -48,23 +50,20 @@ const AppNavigator = () => {
     return (
         <NavigationContainer>
             <Stack.Navigator>
-                {!userToken ? (
-                    // Show login/signup flow here (example: LoginScreen)
-                    <Stack.Screen name="Login" component={DashboardScreen} />
-                ) : !isProfileComplete ? (
-                    // Navigate to ProfileScreen if profile is not complete
-                    <Stack.Screen
-                        name="Profile"
-                        component={ProfileScreen}
-                        options={{ headerShown: false }}
-                    />
+                {isAuthenticated ? (
+                    isProfileComplete ? (
+                        // Navigate to Dashboard if profile is complete
+                        <Stack.Screen name="Dashboard" component={DashboardScreen} />
+                    ) : (
+                        // Navigate to ProfileScreen if profile is not complete
+                        <Stack.Screen name="Profile" component={ProfileScreen} />
+                    )
+
                 ) : (
-                    // Normal dashboard if profile is complete
-                    <Stack.Screen
-                        name="Dashboard"
-                        component={DashboardScreen}
-                        options={{ headerShown: false }}
-                    />
+                    <>
+                        <Stack.Screen name="Login" component={LoginScreen} />
+                        <Stack.Screen name="Signup" component={SignupScreen} />
+                    </>
                 )}
             </Stack.Navigator>
         </NavigationContainer>

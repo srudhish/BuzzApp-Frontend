@@ -1,13 +1,13 @@
 import axios from "axios";
-import { UserProfileUpdateDto } from "../types";
+import { UserProfileUpdateDto, UserRole } from "../types";
 
-const API_BASE = 'http://192.168.1.36:5210/api';
+const API_BASE = 'http://192.168.1.35:5210/api';
 // 👆 use your backend URL (10.0.2.2 works for Android emulator if backend runs on localhost:5000)
 
 type VerifyResponse = {
     isNewUser: boolean;
     token?: string;
-    role?: string;
+    role?: UserRole;
     userId?: string;
 };
 
@@ -97,8 +97,8 @@ export const submitProfile = async (
     return await res.json(); // expected: { message: "Profile updated successfully" }
 };
 
-export const getCurrentUser = async (token: string, userId: string) => {
-    const res = await fetch(`${API_BASE}/User/${userId}`, {
+export const getCurrentUser = async (token: string, id: string) => {
+    const res = await fetch(`${API_BASE}/User/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
     });
 

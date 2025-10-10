@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, TextInput, Button, Text } from 'react-native';
-import { UserProfileUpdateDto, EmployeeProfileDto } from '../types';
+import { UserProfileUpdateDto, EmployeeProfileDto, UserRole } from '../types';
 
 interface Props {
-    userRole: string;
+    userRole: UserRole;
     userId: string;
     initialData?: UserProfileUpdateDto;
     onSubmit: (data: UserProfileUpdateDto) => void;
@@ -26,15 +26,18 @@ const ProfileForm: React.FC<Props> = ({ userRole, initialData, onSubmit }) => {
     const [reportingToId, setReportingToId] = useState(initialData?.EmployeeProfile?.ReportingToId || '');
 
     const handleSubmit = () => {
+        const isCompanyRole = userRole === UserRole.Owner || userRole === UserRole.Supplier || userRole === UserRole.Buyer;
+        const isEmployeeRole = userRole === UserRole.Employee || userRole === UserRole.Supervisor || userRole === UserRole.Labor;
+
         const data: UserProfileUpdateDto = {
             FullName: fullName,
             Email: email,
             Aadhaar: aadhaar,
-            Role: userRole as any,
-            CompanyName: userRole === 'Owner' || userRole === 'Supplier' || userRole === 'Buyer' ? companyName : undefined,
-            CompanyAddress: userRole === 'Owner' || userRole === 'Supplier' || userRole === 'Buyer' ? companyAddress : undefined,
-            CompanyGST: userRole === 'Owner' || userRole === 'Supplier' || userRole === 'Buyer' ? companyGST : undefined,
-            EmployeeProfile: userRole === 'Employee' || userRole === 'Supervisor' || userRole === 'Labor' ? {
+            Role: userRole,
+            CompanyName: isCompanyRole ? companyName : undefined,
+            CompanyAddress: isCompanyRole ? companyAddress : undefined,
+            CompanyGST: isCompanyRole ? companyGST : undefined,
+            EmployeeProfile: isEmployeeRole ? {
                 EmployeeCode: employeeCode,
                 Designation: designation,
                 Department: department,
@@ -56,7 +59,7 @@ const ProfileForm: React.FC<Props> = ({ userRole, initialData, onSubmit }) => {
             <Text>Aadhaar</Text>
             <TextInput value={aadhaar} onChangeText={setAadhaar} />
 
-            {(userRole === 'Owner' || userRole === 'Supplier' || userRole === 'Buyer') && (
+            {(userRole === UserRole.Owner || userRole === UserRole.Supplier || userRole === UserRole.Buyer) && (
                 <>
                     <Text>Company Name</Text>
                     <TextInput value={companyName} onChangeText={setCompanyName} />
@@ -69,7 +72,7 @@ const ProfileForm: React.FC<Props> = ({ userRole, initialData, onSubmit }) => {
                 </>
             )}
 
-            {(userRole === 'Employee' || userRole === 'Supervisor' || userRole === 'Labor') && (
+            {(userRole === UserRole.Employee || userRole === UserRole.Supervisor || userRole === UserRole.Labor) && (
                 <>
                     <Text>Employee Code</Text>
                     <TextInput value={employeeCode} onChangeText={setEmployeeCode} />

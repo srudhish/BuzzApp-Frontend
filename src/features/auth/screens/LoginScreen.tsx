@@ -8,7 +8,7 @@ const LoginScreen = () => {
     const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const { setAuth } = useAuth();
 
     const onSendOtp = async () => {
@@ -26,18 +26,18 @@ const LoginScreen = () => {
             const res = await verifyOtp(mobile, otp);
             if (res.isNewUser) {
                 // navigate to signup with mobile and otp passed so user doesn't need to re-enter
-                navigation.navigate('Signup' as never, { mobile, otp } as never);
+                navigation.navigate('Signup', { mobile, otp });
                 return;
             }
             // logged-in user
             if (res.token && res.role) {
-                await setAuth(res.token, res.role);
+                await setAuth(res.token, res.role, res.userId ?? '');
                 // navigate to role-based dashboard
-                if (res.role.toLowerCase() === 'owner') {
-                    navigation.reset({ index: 0, routes: [{ name: 'OwnerDashboard' as never }] });
-                } else {
-                    navigation.reset({ index: 0, routes: [{ name: 'EmployeeDashboard' as never }] });
-                }
+                // if (res.role.toLowerCase() === 'owner') {
+                //     navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] });
+                // } else {
+                //     navigation.reset({ index: 0, routes: [{ name: 'EmployeeDashboard' }] });
+                // }
             }
         } catch (e: any) {
             Alert.alert('Error', e.message || 'Verify failed');
@@ -56,7 +56,7 @@ const LoginScreen = () => {
                     <Button title="Verify OTP" onPress={onVerify} />
                 </>
             )}
-            <Button title="Signup instead" onPress={() => navigation.navigate('Signup' as never)} />
+            <Button title="Signup instead" onPress={() => navigation.navigate('Signup')} />
         </View>
     );
 };

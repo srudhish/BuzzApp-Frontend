@@ -34,8 +34,8 @@ export default function SignupScreen() {
         try {
             const res: any = await signupCompany(mobile, otp);
             if (res.token && res.role) {
-                await setAuth(res.token, res.role);
-                navigation.reset({ index: 0, routes: [{ name: 'OwnerDashboard' as never }] });
+                await setAuth(res.token, res.role, res.userId || '');
+                navigation.reset({ index: 0, routes: [{ name: 'Dashboard' as never }] });
             }
         } catch (e: any) {
             Alert.alert('Error', e.message || 'Signup failed');
@@ -46,7 +46,7 @@ export default function SignupScreen() {
         try {
             const res: any = await signupEmployee(mobile, otp);
             if (res.token && res.role) {
-                await setAuth(res.token, res.role);
+                await setAuth(res.token, res.role, res.userId || '');
                 navigation.reset({ index: 0, routes: [{ name: 'EmployeeDashboard' as never }] });
             }
         } catch (e: any) {

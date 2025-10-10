@@ -3,7 +3,7 @@ import { View, ScrollView, Alert, ActivityIndicator } from "react-native";
 import ProfileForm from "./ProfileForm";
 import { useAuth } from "../../../app/context/AuthContext";
 import { submitProfile } from "../services/authService";
-import { UserProfileUpdateDto } from "../types";
+import { UserProfileUpdateDto, UserRole } from "../types";
 import { getCurrentUser } from "../services/authService";
 
 const ProfileScreen: React.FC = () => {
@@ -17,17 +17,14 @@ const ProfileScreen: React.FC = () => {
         const fetchUser = async () => {
             try {
                 setLoading(true);
-                const res = await getCurrentUser(userToken, userId);
-
-                if (!res.ok) throw new Error("Failed to fetch user");
-                const user = await res.json();
+                const user = await getCurrentUser(userToken, userId);
 
                 setInitialData({
                     Id: user.id,
                     FullName: user.fullName || "",
                     Email: user.email || "",
                     Aadhaar: user.aadharNumber || "",
-                    Role: role || "Employee",
+                    Role: (role ?? UserRole) as UserRole,
                     CompanyName: user.company?.name || "",
                     CompanyAddress: user.company?.address || "",
                     CompanyGST: user.company?.gstNumber || "",
@@ -66,7 +63,7 @@ const ProfileScreen: React.FC = () => {
     return (
         <ScrollView contentContainerStyle={{ padding: 16 }}>
             <ProfileForm
-                userRole={role || "Employee"}
+                userRole={role || UserRole.Employee}
                 userId={initialData.Id}
                 initialData={initialData}
                 onSubmit={handleSubmit}
