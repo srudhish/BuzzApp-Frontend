@@ -41,3 +41,24 @@ export interface UserProfileResponse {
     company?: CompanyDto;
     employeeProfile?: EmployeeProfileDto;
 }
+
+export interface User {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    [key: string]: any;
+}
+
+export interface AuthTokens {
+    accessToken: string;
+    refreshToken: string;
+}
+
+export interface AuthState {
+    user: User | null;
+    accessToken: string | null;
+    refreshToken: string | null;
+    isLoading: boolean;
+    error: string | null;
+}

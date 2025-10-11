@@ -1,12 +1,13 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store';
 import { loadUserFromStorage, logoutUser } from '../../features/auth/slices/authSlice';
+import { UserRole } from '@features/auth/types';
 
 type AuthContextType = {
     isAuthenticated: boolean;
     userToken: string | null;
     userId: string | null;
-    role: string | null;
+    role: UserRole;
     isHydrating: boolean;
     logout: () => void;
 };

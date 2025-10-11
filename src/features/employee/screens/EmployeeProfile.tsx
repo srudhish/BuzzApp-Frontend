@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, ActivityIndicator, Alert, View } from 'react-native';
-import EmployeeProfileForm from '../../profile/components/profileform/employeeProfileForm';
+import EmployeeProfileForm from '../../employee/screens/EmployeeDashboard';
 import { submitProfile, getCurrentUser } from '../../auth/services/authService';
 import { useAuth } from '../../../app/context/AuthContext';
 import { UserProfileUpdateDto } from '../../auth/types';

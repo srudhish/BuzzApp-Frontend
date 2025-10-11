@@ -2,9 +2,10 @@ export type ApiConfig = {
     /** Base URL for all API requests. */
     baseUrl: string;
 };
+export const API_BASE_URL = 'http://192.168.1.33:5210/api';
 
 const DEFAULT_CONFIG: ApiConfig = {
-    baseUrl: 'http://10.0.2.2:5210/api',
+    baseUrl: API_BASE_URL,
 };
 
 const runtimeConfig: Partial<ApiConfig> =

@@ -1,6 +1,6 @@
-import { API_BASE_URL } from '../../../config/api';
+import { API_BASE_URL } from '../../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { refreshTokens } from '../../auth/services/authService';
+import { refreshTokens } from '../../features/auth/services/authService';
 
 // Common fetch wrapper with token refresh logic
 export const apiClient = async (
