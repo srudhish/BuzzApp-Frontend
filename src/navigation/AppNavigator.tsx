@@ -1,47 +1,68 @@
-import React, { useEffect, useState } from "react";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { NavigationContainer } from "@react-navigation/native";
-import DashboardScreen from "../features/dashboard/screens/DashboardScreen";
-import ProfileScreen from "../features/auth/screens/ProfileScreen";
-import { useAuth } from "../app/context/AuthContext";
-import { ActivityIndicator, View } from "react-native";
-import { getCurrentUser } from "../features/auth/services/authService";
-import LoginScreen from "../features/auth/screens/LoginScreen";
-import SignupScreen from "../features/auth/screens/SignupScreen";
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+import { useAuth } from '../app/context/AuthContext';
+import DashboardScreen from '../features/dashboard/screens/DashboardScreen';
+import ProfileScreen from '../features/auth/screens/ProfileScreen';
+import { getCurrentUser } from '../features/auth/services/authService';
+import LoginScreen from '../features/auth/screens/LoginScreen';
+import SignupScreen from '../features/auth/screens/SignupScreen';
 
 const Stack = createNativeStackNavigator();
 
+type CurrentUserResponse = {
+    isProfileCompleted?: boolean;
+};
+
 const AppNavigator = () => {
-    const { userToken, userId, isAuthenticated } = useAuth();
-    const [loading, setLoading] = useState(true);
+    const { userToken, userId, isAuthenticated, isHydrating } = useAuth();
+    const [loadingProfile, setLoadingProfile] = useState(true);
     const [isProfileComplete, setIsProfileComplete] = useState(false);
 
     useEffect(() => {
-        if (!userToken || !userId) {
-            setLoading(false);
+        if (isHydrating) {
             return;
         }
 
-        const checkProfile = async () => {
-            try {
-                setLoading(true);
-                const user = await getCurrentUser(userToken, userId);
+        if (!userToken || !userId) {
+            setLoadingProfile(false);
+            setIsProfileComplete(false);
+            return;
+        }
 
-                // Assuming `isProfileCompleted` is true when profile is complete
-                setIsProfileComplete(user.isProfileCompleted);
+        let isMounted = true;
+
+        const checkProfile = async () => {
+            setLoadingProfile(true);
+            try {
+                const user = await getCurrentUser<CurrentUserResponse>(userToken, userId);
+                if (isMounted) {
+                    setIsProfileComplete(Boolean(user?.isProfileCompleted));
+                }
             } catch (err) {
-                console.error(err);
+                console.error('Failed to load current user', err);
+                if (isMounted) {
+                    setIsProfileComplete(false);
+                }
             } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoadingProfile(false);
+                }
             }
         };
 
         checkProfile();
-    }, [userToken, userId]);
 
-    if (loading) {
+        return () => {
+            isMounted = false;
+        };
+    }, [isHydrating, userToken, userId]);
+
+    if (isHydrating || loadingProfile) {
         return (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" />
             </View>
         );
@@ -49,16 +70,13 @@ const AppNavigator = () => {
 
     return (
         <NavigationContainer>
-            <Stack.Navigator>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {isAuthenticated ? (
                     isProfileComplete ? (
-                        // Navigate to Dashboard if profile is complete
                         <Stack.Screen name="Dashboard" component={DashboardScreen} />
                     ) : (
-                        // Navigate to ProfileScreen if profile is not complete
                         <Stack.Screen name="Profile" component={ProfileScreen} />
                     )
-
                 ) : (
                     <>
                         <Stack.Screen name="Login" component={LoginScreen} />

@@ -1,26 +1,43 @@
-// User role enum (matches backend)
-export enum UserRole { Owner = 1, Supplier = 2, Buyer = 3, Employee = 4, Supervisor = 5, Labor = 6 };
-
-// EmployeeProfile DTO
-export interface EmployeeProfileDto {
-  EmployeeCode: string;
-  Designation: string;
-  Department: string;
-  ReportingToId?: string;
+export enum UserRole {
+    Owner = 1,
+    Supplier = 2,
+    Buyer = 3,
+    Employee = 4,
+    Supervisor = 5,
+    Labor = 6,
 }
 
-// UserProfileUpdate DTO
+export interface EmployeeProfileDto {
+    EmployeeCode: string;
+    Designation: string;
+    Department: string;
+    ReportingToId?: string;
+}
+
 export interface UserProfileUpdateDto {
-  FullName: string;
-  Email?: string;
-  Aadhaar?: string;
-  Role: UserRole;
+    FullName: string;
+    Email?: string;
+    Aadhaar?: string;
+    Role: UserRole;
+    CompanyName?: string;
+    CompanyAddress?: string;
+    CompanyGST?: string;
+    EmployeeProfile?: EmployeeProfileDto;
+}
 
-  // Optional company fields (for Owner/Supplier/Buyer)
-  CompanyName?: string;
-  CompanyAddress?: string;
-  CompanyGST?: string;
+export interface CompanyDto {
+    name?: string;
+    address?: string;
+    gstNumber?: string;
+}
 
-  // Optional employee profile (for Employee/Supervisor/Labor)
-  EmployeeProfile?: EmployeeProfileDto;
+export interface UserProfileResponse {
+    id: string;
+    fullName?: string;
+    email?: string;
+    aadharNumber?: string;
+    role?: UserRole;
+    isProfileCompleted?: boolean;
+    company?: CompanyDto;
+    employeeProfile?: EmployeeProfileDto;
 }

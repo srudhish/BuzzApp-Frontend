@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserRole } from '@features/auth/types';
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+
+import { UserRole } from '../../features/auth/types';
+import { clearAuthState, loadAuthState, persistAuthState } from '../storage/authStorage';
 
 type AuthContextType = {
     userToken: string | null;
@@ -9,6 +10,7 @@ type AuthContextType = {
     setAuth: (token: string, role: UserRole, userId: string) => Promise<void>;
     logout: () => Promise<void>;
     isAuthenticated: boolean;
+    isHydrating: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,48 +19,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [userToken, setUserToken] = useState<string | null>(null);
     const [role, setRole] = useState<UserRole | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
-
-    const isAuthenticated = !!userToken;
+    const [isHydrating, setIsHydrating] = useState(true);
 
     useEffect(() => {
-        // load auth info from storage on mount
-        (async () => {
+        let isMounted = true;
+
+        const hydrateAuthState = async () => {
+            setIsHydrating(true);
             try {
-                await AsyncStorage.removeItem('@user_token');
-                await AsyncStorage.removeItem('@user_role');
-                await AsyncStorage.removeItem('@user_id');
-                setUserToken(null);
-                setRole(null);
-                setUserId(null);
-            } catch (e) {
-                console.warn('Failed to clear auth on app start', e);
+                const persisted = await loadAuthState();
+                if (!isMounted) {
+                    return;
+                }
+
+                setUserToken(persisted.token);
+                setRole(persisted.role);
+                setUserId(persisted.userId);
+            } finally {
+                if (isMounted) {
+                    setIsHydrating(false);
+                }
             }
-        })();
+        };
+
+        hydrateAuthState();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
-    const setAuth = async (token: string, roleVal: UserRole, id: string) => {
+    const setAuth = async (token: string, roleValue: UserRole, id: string) => {
         setUserToken(token);
-        setRole(roleVal);
+        setRole(roleValue);
         setUserId(id);
-        await AsyncStorage.setItem('@user_token', token);
-        await AsyncStorage.setItem('@user_role', String(roleVal));
-        await AsyncStorage.setItem('@user_id', id);
+        await persistAuthState(token, roleValue, id);
     };
 
     const logout = async () => {
         setUserToken(null);
         setRole(null);
         setUserId(null);
-        await AsyncStorage.removeItem('@user_token');
-        await AsyncStorage.removeItem('@user_role');
-        await AsyncStorage.removeItem('@user_id');
+        await clearAuthState();
     };
 
-    return (
-        <AuthContext.Provider value={{ userToken, role, userId, setAuth, logout, isAuthenticated }}>
-            {children}
-        </AuthContext.Provider>
+    const value = useMemo(
+        () => ({
+            userToken,
+            role,
+            userId,
+            setAuth,
+            logout,
+            isAuthenticated: Boolean(userToken),
+            isHydrating,
+        }),
+        [userToken, role, userId, isHydrating],
     );
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = (): AuthContextType => {
