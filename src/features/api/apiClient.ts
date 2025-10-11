@@ -1,95 +1,78 @@
-import { buildUrl } from '../../config/api';
+import { API_BASE_URL } from '../../../config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { refreshTokens } from '../../auth/services/authService';
 
-export class ApiError<T = unknown> extends Error {
-    status: number;
-    data?: T;
+// Common fetch wrapper with token refresh logic
+export const apiClient = async (
+    endpoint: string,
+    options: RequestInit = {}
+): Promise<any> => {
+    const token = await AsyncStorage.getItem('@access_token');
+    const refreshToken = await AsyncStorage.getItem('@refresh_token');
 
-    constructor(message: string, status: number, data?: T) {
-        super(message);
-        this.name = 'ApiError';
-        this.status = status;
-        this.data = data;
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    let response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+    });
+
+    // 🔁 Handle unauthorized & try refresh once
+    if (response.status === 401 && refreshToken) {
+        try {
+            const newTokens = await refreshTokens(refreshToken);
+            if (newTokens?.accessToken) {
+                await AsyncStorage.setItem('@access_token', newTokens.accessToken);
+                await AsyncStorage.setItem('@refresh_token', newTokens.refreshToken);
+                // Retry the original request with new access token
+                const retryHeaders = {
+                    ...headers,
+                    Authorization: `Bearer ${newTokens.accessToken}`,
+                };
+                response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers: retryHeaders,
+                });
+            }
+        } catch (refreshError) {
+            console.warn('Token refresh failed:', refreshError);
+            throw new Error('Session expired. Please log in again.');
+        }
     }
-}
 
-type RequestOptions = Omit<RequestInit, 'headers' | 'body'> & {
-    headers?: Record<string, string>;
-    authToken?: string;
-    body?: unknown;
-};
-
-const parseBody = (text: string): unknown => {
-    if (!text) {
-        return undefined;
+    if (!response.ok) {
+        const errText = await response.text();
+        let message = 'An unknown error occurred.';
+        try {
+            const errJson = JSON.parse(errText);
+            message = errJson.message || message;
+        } catch {
+            message = errText || message;
+        }
+        throw new Error(message);
     }
 
     try {
-        return JSON.parse(text);
-    } catch (error) {
-        return text;
+        return await response.json();
+    } catch {
+        return {};
     }
 };
 
-const prepareBody = (body: unknown, headers: Record<string, string>) => {
-    if (body == null) {
-        return undefined;
-    }
-
-    if (body instanceof FormData) {
-        return body;
-    }
-
-    if (typeof body === 'string') {
-        return body;
-    }
-
-    if (!headers['Content-Type']) {
-        headers['Content-Type'] = 'application/json';
-    }
-
-    return JSON.stringify(body);
-};
-
-export const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
-    const { authToken, headers: customHeaders = {}, body, method = 'GET', ...rest } = options;
-
-    const headers: Record<string, string> = {
-        Accept: 'application/json',
-        ...customHeaders,
-    };
-
-    if (authToken) {
-        headers.Authorization = `Bearer ${authToken}`;
-    }
-
-    const requestBody = prepareBody(body, headers);
-
-    const response = await fetch(buildUrl(path), {
-        method,
-        headers,
-        body: requestBody as BodyInit | undefined,
-        ...rest,
+// Generic request methods
+export const get = (url: string) => apiClient(url, { method: 'GET' });
+export const post = (url: string, body?: any) =>
+    apiClient(url, {
+        method: 'POST',
+        body: body ? JSON.stringify(body) : undefined,
     });
-
-    const rawBody = await response.text();
-    const parsedBody = parseBody(rawBody);
-
-    if (!response.ok) {
-        const message =
-            typeof parsedBody === 'string'
-                ? parsedBody
-                : (parsedBody as { message?: string })?.message || `Request failed with status ${response.status}`;
-
-        throw new ApiError(message, response.status, parsedBody);
-    }
-
-    return parsedBody as T;
-};
-
-export const get = async <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: 'GET' });
-
-export const post = async <TRequest, TResponse>(path: string, body?: TRequest, options?: RequestOptions) =>
-    request<TResponse>(path, { ...options, method: 'POST', body });
-
-export const put = async <TRequest, TResponse>(path: string, body?: TRequest, options?: RequestOptions) =>
-    request<TResponse>(path, { ...options, method: 'PUT', body });
+export const put = (url: string, body?: any) =>
+    apiClient(url, {
+        method: 'PUT',
+        body: body ? JSON.stringify(body) : undefined,
+    });
+export const del = (url: string) => apiClient(url, { method: 'DELETE' });

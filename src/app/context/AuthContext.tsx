@@ -1,80 +1,50 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
-
-import { UserRole } from '../../features/auth/types';
-import { clearAuthState, loadAuthState, persistAuthState } from '../storage/authStorage';
+import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '../store';
+import { loadUserFromStorage, logoutUser } from '../../features/auth/slices/authSlice';
 
 type AuthContextType = {
-    userToken: string | null;
-    role: UserRole | null;
-    userId: string | null;
-    setAuth: (token: string, role: UserRole, userId: string) => Promise<void>;
-    logout: () => Promise<void>;
     isAuthenticated: boolean;
+    userToken: string | null;
+    userId: string | null;
+    role: string | null;
     isHydrating: boolean;
+    logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [userToken, setUserToken] = useState<string | null>(null);
-    const [role, setRole] = useState<UserRole | null>(null);
-    const [userId, setUserId] = useState<string | null>(null);
+    const dispatch = useAppDispatch();
+    const { user, accessToken } = useAppSelector((state) => state.auth);
+
     const [isHydrating, setIsHydrating] = useState(true);
 
+    // Hydrate user session from AsyncStorage via Redux
     useEffect(() => {
-        let isMounted = true;
-
-        const hydrateAuthState = async () => {
-            setIsHydrating(true);
+        (async () => {
             try {
-                const persisted = await loadAuthState();
-                if (!isMounted) {
-                    return;
-                }
-
-                setUserToken(persisted.token);
-                setRole(persisted.role);
-                setUserId(persisted.userId);
+                setIsHydrating(true);
+                await dispatch(loadUserFromStorage());
             } finally {
-                if (isMounted) {
-                    setIsHydrating(false);
-                }
+                setIsHydrating(false);
             }
-        };
+        })();
+    }, [dispatch]);
 
-        hydrateAuthState();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    const setAuth = async (token: string, roleValue: UserRole, id: string) => {
-        setUserToken(token);
-        setRole(roleValue);
-        setUserId(id);
-        await persistAuthState(token, roleValue, id);
+    const logout = () => {
+        dispatch(logoutUser());
     };
 
-    const logout = async () => {
-        setUserToken(null);
-        setRole(null);
-        setUserId(null);
-        await clearAuthState();
-    };
+    const isAuthenticated = !!user && !!accessToken;
 
-    const value = useMemo(
-        () => ({
-            userToken,
-            role,
-            userId,
-            setAuth,
-            logout,
-            isAuthenticated: Boolean(userToken),
-            isHydrating,
-        }),
-        [userToken, role, userId, isHydrating],
-    );
+    const value: AuthContextType = {
+        isAuthenticated,
+        userToken: accessToken,
+        userId: user?.id || null,
+        role: user?.role || null,
+        isHydrating,
+        logout,
+    };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

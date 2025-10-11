@@ -64,3 +64,8 @@ export const getCurrentUser = async <TResponse = unknown>(token: string, id: str
     get<TResponse>(`${USER_PREFIX}/${id}`, {
         authToken: token,
     });
+
+export const refreshTokens = async (refreshToken: string) => {
+    const response = await post(`${AUTH_PREFIX}/refresh-token`, { refreshToken });
+    return response; // Expected { accessToken, refreshToken }
+};
